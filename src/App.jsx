@@ -421,6 +421,15 @@ export default function App() {
               {tip.is_published ? '取消发布' : '发布'}
             </button>
             <button style={{ ...s.btn, ...s.btnDanger }} onClick={() => handleDelete(tip.id)}>删除</button>
+            <button style={{ ...s.btn, background: '#6c757d', color: '#fff' }} onClick={() => {
+              const isHTML = tip.content_zh && (tip.content_zh.trim().startsWith('<!DOCTYPE') || tip.content_zh.trim().startsWith('<html'));
+              const previewHTML = isHTML ? tip.content_zh : `<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><style>body{font-family:-apple-system,sans-serif;padding:20px;max-width:420px;margin:0 auto;background:#EDEBE6;color:#333;line-height:1.75;font-size:16px;}h2{color:#2D4A3F;border-bottom:2px solid #B8A86F;padding-bottom:6px;}h3{color:#2D4A3F;}strong{color:#2D4A3F;}blockquote{border-left:3px solid #B8A86F;padding:8px 16px;background:rgba(184,168,111,0.08);color:#555;margin:12px 0;}hr{border:none;height:1px;background:linear-gradient(to right,#B8A86F,transparent);margin:20px 0;}ul{padding-left:24px;}</style></head><body>${tip.content_zh || '暂无内容'}</body></html>`;
+              const w = window.open('', '_blank', 'width=420,height=800');
+              w.document.write(previewHTML);
+              w.document.close();
+            }}>
+              📱 预览
+            </button>
             {tip.is_published && (
               <button
                 style={{ ...s.btn, background: '#8B6B3D', color: '#fff' }}

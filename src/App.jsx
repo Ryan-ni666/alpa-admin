@@ -4,6 +4,7 @@ import { supabase } from './supabaseClient';
 const CATEGORIES = [
   { value: 'tilt', label: '俯仰 Tilt' },
   { value: 'lens', label: '镜头 Lens' },
+  { value: 'filter', label: '滤镜 Filter' },
   { value: 'workflow', label: '工作流 Workflow' },
   { value: 'post', label: '后期 Post' },
 ];
@@ -102,6 +103,36 @@ export default function App() {
       published_at: newVal ? new Date().toISOString() : null,
     }).eq('id', tip.id);
     fetchTips();
+  };
+
+  // ---- Push Notification ----
+  const [pushing, setPushing] = useState(false);
+
+  const sendPush = async (tip) => {
+    if (!confirm(`确认向所有用户推送通知？\n\n标题：${tip.title_zh}`)) return;
+    setPushing(tip.id);
+    try {
+      const res = await fetch('/api/send-push', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': 'alpa-push-2026324￥%#@%……',
+        },
+        body: JSON.stringify({
+          title: '大烤拉摄影学院',
+          body: `新文章：${tip.title_zh}`,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`推送成功！发送 ${data.sent} 台设备，失败 ${data.failed} 台`);
+      } else {
+        alert('推送失败: ' + (data.error || '未知错误'));
+      }
+    } catch (err) {
+      alert('推送失败: ' + err.message);
+    }
+    setPushing(false);
   };
 
   // ---- Styles ----
@@ -390,6 +421,15 @@ export default function App() {
               {tip.is_published ? '取消发布' : '发布'}
             </button>
             <button style={{ ...s.btn, ...s.btnDanger }} onClick={() => handleDelete(tip.id)}>删除</button>
+            {tip.is_published && (
+              <button
+                style={{ ...s.btn, background: '#8B6B3D', color: '#fff' }}
+                onClick={() => sendPush(tip)}
+                disabled={pushing === tip.id}
+              >
+                {pushing === tip.id ? '推送中...' : '🔔 发送推送'}
+              </button>
+            )}
           </div>
         </div>
       ))}

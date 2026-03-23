@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from './supabaseClient';
 
 const CATEGORIES = [
@@ -18,7 +18,33 @@ const emptyTip = {
   published_at: null,
 };
 
+// Simple auth (client-side gate, not for high-security use)
+const AUTH_USER = 'hjryan';
+const AUTH_HASH = '7a3f8b2d'; // derived from password
+
+function hashSimple(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  }
+  return (h >>> 0).toString(16);
+}
+
 export default function App() {
+  const [authed, setAuthed] = useState(() => sessionStorage.getItem('alpa_auth') === 'true');
+  const [loginUser, setLoginUser] = useState('');
+  const [loginPass, setLoginPass] = useState('');
+  const [loginError, setLoginError] = useState('');
+
+  const handleLogin = () => {
+    if (loginUser === AUTH_USER && hashSimple(loginPass) === hashSimple('Hengji000@')) {
+      sessionStorage.setItem('alpa_auth', 'true');
+      setAuthed(true);
+    } else {
+      setLoginError('用户名或密码错误');
+    }
+  };
+
   const [tips, setTips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
@@ -80,7 +106,7 @@ export default function App() {
 
   // ---- Styles ----
   const s = {
-    page: { maxWidth: 960, margin: '0 auto', padding: 24, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#333' },
+    page: { maxWidth: 1200, margin: '0 auto', padding: '24px 40px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#333' },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, borderBottom: '3px solid #B8A86F', paddingBottom: 16 },
     title: { fontSize: 22, fontWeight: 700, color: '#2D4A3F' },
     btn: { padding: '8px 18px', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 14 },
@@ -88,7 +114,7 @@ export default function App() {
     btnGold: { background: '#B8A86F', color: '#fff' },
     btnDanger: { background: '#c0392b', color: '#fff' },
     btnOutline: { background: '#fff', color: '#2D4A3F', border: '1px solid #2D4A3F' },
-    card: { background: '#fff', border: '1px solid #e0ddd8', borderRadius: 8, padding: 16, marginBottom: 12 },
+    card: { background: '#fff', border: '1px solid #e0ddd8', borderRadius: 8, padding: 24, marginBottom: 16 },
     cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
     badge: (pub) => ({
       display: 'inline-block', padding: '2px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600,
@@ -97,11 +123,89 @@ export default function App() {
     catBadge: { display: 'inline-block', padding: '2px 8px', borderRadius: 4, fontSize: 11, background: '#2D4A3F', color: '#B8A86F', marginLeft: 8 },
     label: { display: 'block', fontWeight: 600, marginBottom: 4, marginTop: 16, fontSize: 13, color: '#2D4A3F' },
     input: { width: '100%', padding: '8px 12px', border: '1px solid #ccc', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' },
-    textarea: { width: '100%', padding: '8px 12px', border: '1px solid #ccc', borderRadius: 6, fontSize: 14, minHeight: 200, boxSizing: 'border-box', fontFamily: 'monospace' },
+    textarea: { width: '100%', padding: '12px 14px', border: '1px solid #ccc', borderRadius: 6, fontSize: 15, minHeight: 320, boxSizing: 'border-box', fontFamily: 'ui-monospace, "SF Mono", Monaco, monospace', lineHeight: 1.7 },
     select: { padding: '8px 12px', border: '1px solid #ccc', borderRadius: 6, fontSize: 14 },
     row: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 },
     actions: { display: 'flex', gap: 8, marginTop: 8 },
+    toolBtn: { padding: '4px 10px', border: '1px solid #ccc', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 600, background: '#fff', color: '#2D4A3F' },
+    previewBox: { border: '1px solid #e0ddd8', borderRadius: 8, padding: 20, minHeight: 200, background: '#fff', fontSize: 15, lineHeight: 1.75, color: '#333', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' },
   };
+
+  // ---- Markdown helpers ----
+  const [showPreview, setShowPreview] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const simpleMarkdownToHTML = (md) => {
+    if (!md) return '';
+    let html = md
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2 style="border-bottom:2px solid #B8A86F;padding-bottom:6px">$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:12px;margin:12px 0">')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color:#B8A86F">$1</a>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong style="color:#2D4A3F">$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code style="background:#F0EBE0;padding:2px 6px;border-radius:4px">$1</code>')
+      .replace(/^---$/gm, '<hr style="border:none;height:1px;background:linear-gradient(to right,#B8A86F,transparent);margin:20px 0">')
+      .replace(/^&gt; (.+)$/gm, '<blockquote style="border-left:3px solid #B8A86F;padding:8px 16px;margin:12px 0;background:rgba(184,168,111,0.08);border-radius:0 8px 8px 0;color:#555">$1</blockquote>')
+      .replace(/^[*-] (.+)$/gm, '<li>$1</li>');
+    html = html.replace(/(<li>.*<\/li>\n?)+/g, m => '<ul style="padding-left:24px;margin:12px 0">' + m + '</ul>');
+    html = html.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
+    return '<p>' + html + '</p>';
+  };
+
+  const handleImageUpload = async (field) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*,.gif';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      setUploading(true);
+      const ext = file.name.split('.').pop();
+      const path = `tips/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error } = await supabase.storage.from('tips-media').upload(path, file, { cacheControl: '31536000', upsert: false });
+      if (error) {
+        alert('上传失败: ' + error.message);
+        setUploading(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from('tips-media').getPublicUrl(path);
+      const mdImage = `![${file.name}](${urlData.publicUrl})`;
+      setEditing(prev => ({ ...prev, [field]: (prev[field] || '') + '\n' + mdImage + '\n' }));
+      setUploading(false);
+    };
+    input.click();
+  };
+
+  const insertMarkdown = (field, prefix, suffix = '') => {
+    const textarea = document.querySelector(`textarea[data-field="${field}"]`);
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = editing[field] || '';
+    const selected = text.substring(start, end) || '文字';
+    const newText = text.substring(0, start) + prefix + selected + suffix + text.substring(end);
+    setEditing(prev => ({ ...prev, [field]: newText }));
+  };
+
+  // ---- Toolbar component ----
+  const MarkdownToolbar = ({ field }) => (
+    <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+      <button type="button" style={s.toolBtn} onClick={() => insertMarkdown(field, '## ', '')}>H2</button>
+      <button type="button" style={s.toolBtn} onClick={() => insertMarkdown(field, '### ', '')}>H3</button>
+      <button type="button" style={s.toolBtn} onClick={() => insertMarkdown(field, '**', '**')}>B</button>
+      <button type="button" style={s.toolBtn} onClick={() => insertMarkdown(field, '*', '*')}>I</button>
+      <button type="button" style={s.toolBtn} onClick={() => insertMarkdown(field, '> ', '')}>引用</button>
+      <button type="button" style={s.toolBtn} onClick={() => insertMarkdown(field, '- ', '')}>列表</button>
+      <button type="button" style={s.toolBtn} onClick={() => insertMarkdown(field, '[', '](https://)')}>链接</button>
+      <button type="button" style={{ ...s.toolBtn, ...s.btnGold }} onClick={() => handleImageUpload(field)} disabled={uploading}>
+        {uploading ? '上传中...' : '📷 图片/GIF'}
+      </button>
+    </div>
+  );
 
   // ---- Form View ----
   if (editing) {
@@ -112,7 +216,12 @@ export default function App() {
       <div style={{ ...s.page, background: '#F5F3F0', minHeight: '100vh' }}>
         <div style={s.header}>
           <span style={s.title}>{isNew ? '➕ 新建教程' : '✏️ 编辑教程'}</span>
-          <button style={{ ...s.btn, ...s.btnOutline }} onClick={() => setEditing(null)}>← 返回列表</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button style={{ ...s.btn, ...(showPreview ? s.btnGold : s.btnOutline) }} onClick={() => setShowPreview(!showPreview)}>
+              {showPreview ? '📝 编辑' : '👁 预览'}
+            </button>
+            <button style={{ ...s.btn, ...s.btnOutline }} onClick={() => setEditing(null)}>← 返回列表</button>
+          </div>
         </div>
 
         <div style={s.card}>
@@ -157,16 +266,31 @@ export default function App() {
             </div>
           </div>
 
-          <div style={s.row}>
-            <div>
-              <label style={s.label}>正文（中文 Markdown）</label>
-              <textarea style={s.textarea} value={editing.content_zh} onChange={e => set('content_zh', e.target.value)} />
+          {showPreview ? (
+            <div style={s.row}>
+              <div>
+                <label style={s.label}>中文预览</label>
+                <div style={s.previewBox} dangerouslySetInnerHTML={{ __html: simpleMarkdownToHTML(editing.content_zh) }} />
+              </div>
+              <div>
+                <label style={s.label}>EN Preview</label>
+                <div style={s.previewBox} dangerouslySetInnerHTML={{ __html: simpleMarkdownToHTML(editing.content_en) }} />
+              </div>
             </div>
-            <div>
-              <label style={s.label}>Content (EN Markdown)</label>
-              <textarea style={s.textarea} value={editing.content_en} onChange={e => set('content_en', e.target.value)} />
+          ) : (
+            <div style={s.row}>
+              <div>
+                <label style={s.label}>正文（中文 Markdown）</label>
+                <MarkdownToolbar field="content_zh" />
+                <textarea style={s.textarea} data-field="content_zh" value={editing.content_zh} onChange={e => set('content_zh', e.target.value)} />
+              </div>
+              <div>
+                <label style={s.label}>Content (EN Markdown)</label>
+                <MarkdownToolbar field="content_en" />
+                <textarea style={s.textarea} data-field="content_en" value={editing.content_en} onChange={e => set('content_en', e.target.value)} />
+              </div>
             </div>
-          </div>
+          )}
 
           <div style={{ ...s.actions, marginTop: 24, justifyContent: 'flex-end' }}>
             <button style={{ ...s.btn, ...s.btnOutline }} onClick={() => setEditing(null)}>取消</button>
@@ -174,6 +298,45 @@ export default function App() {
               {saving ? '保存中...' : '💾 保存'}
             </button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Login View ----
+  if (!authed) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#F5F3F0' }}>
+        <div style={{ background: '#fff', padding: 40, borderRadius: 16, width: 360, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
+          <div style={{ textAlign: 'center', marginBottom: 28 }}>
+            <div style={{ fontSize: 24, fontWeight: 700, color: '#2D4A3F' }}>ALPA Tips</div>
+            <div style={{ fontSize: 14, color: '#B8A86F', marginTop: 4 }}>管理后台登录</div>
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#2D4A3F', marginBottom: 4 }}>用户名</label>
+            <input
+              style={{ ...s.input, fontSize: 15 }}
+              value={loginUser}
+              onChange={e => setLoginUser(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              placeholder="请输入用户名"
+            />
+          </div>
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#2D4A3F', marginBottom: 4 }}>密码</label>
+            <input
+              type="password"
+              style={{ ...s.input, fontSize: 15 }}
+              value={loginPass}
+              onChange={e => setLoginPass(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              placeholder="请输入密码"
+            />
+          </div>
+          {loginError && <div style={{ color: '#c0392b', fontSize: 13, marginBottom: 12 }}>{loginError}</div>}
+          <button style={{ ...s.btn, ...s.btnPrimary, width: '100%', padding: '12px 0', fontSize: 16 }} onClick={handleLogin}>
+            登录
+          </button>
         </div>
       </div>
     );

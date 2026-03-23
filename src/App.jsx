@@ -306,37 +306,48 @@ export default function App() {
   // ---- Login View ----
   if (!authed) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#F5F3F0' }}>
-        <div style={{ background: '#fff', padding: 40, borderRadius: 16, width: 360, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
-          <div style={{ textAlign: 'center', marginBottom: 28 }}>
-            <div style={{ fontSize: 24, fontWeight: 700, color: '#2D4A3F' }}>ALPA Tips</div>
-            <div style={{ fontSize: 14, color: '#B8A86F', marginTop: 4 }}>管理后台登录</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'linear-gradient(135deg, #2D4A3F 0%, #1a2e26 100%)' }}>
+        <div style={{ width: 400, padding: '48px 40px', background: 'rgba(255,255,255,0.06)', borderRadius: 24, backdropFilter: 'blur(20px)', border: '1px solid rgba(184,168,111,0.15)', boxShadow: '0 8px 40px rgba(0,0,0,0.3)' }}>
+          <div style={{ textAlign: 'center', marginBottom: 36 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: 6, color: 'rgba(184,168,111,0.5)', marginBottom: 12, textTransform: 'uppercase' }}>ALPA TIPS</div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: '#B8A86F', letterSpacing: 2, fontFamily: 'Georgia, serif' }}>管理后台</div>
+            <div style={{ width: 40, height: 2, background: 'linear-gradient(to right, transparent, #B8A86F, transparent)', margin: '16px auto 0' }}></div>
           </div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#2D4A3F', marginBottom: 4 }}>用户名</label>
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'rgba(184,168,111,0.7)', marginBottom: 8, letterSpacing: 1 }}>用户名</label>
             <input
-              style={{ ...s.input, fontSize: 15 }}
+              style={{ width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(184,168,111,0.2)', borderRadius: 10, fontSize: 15, color: '#e8e4dc', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
               value={loginUser}
               onChange={e => setLoginUser(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              onFocus={e => e.target.style.borderColor = '#B8A86F'}
+              onBlur={e => e.target.style.borderColor = 'rgba(184,168,111,0.2)'}
               placeholder="请输入用户名"
             />
           </div>
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#2D4A3F', marginBottom: 4 }}>密码</label>
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'rgba(184,168,111,0.7)', marginBottom: 8, letterSpacing: 1 }}>密码</label>
             <input
               type="password"
-              style={{ ...s.input, fontSize: 15 }}
+              style={{ width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(184,168,111,0.2)', borderRadius: 10, fontSize: 15, color: '#e8e4dc', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
               value={loginPass}
               onChange={e => setLoginPass(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              onFocus={e => e.target.style.borderColor = '#B8A86F'}
+              onBlur={e => e.target.style.borderColor = 'rgba(184,168,111,0.2)'}
               placeholder="请输入密码"
             />
           </div>
-          {loginError && <div style={{ color: '#c0392b', fontSize: 13, marginBottom: 12 }}>{loginError}</div>}
-          <button style={{ ...s.btn, ...s.btnPrimary, width: '100%', padding: '12px 0', fontSize: 16 }} onClick={handleLogin}>
-            登录
+          {loginError && <div style={{ color: '#e74c3c', fontSize: 13, marginBottom: 16, textAlign: 'center', background: 'rgba(231,76,60,0.1)', padding: '8px 12px', borderRadius: 8 }}>{loginError}</div>}
+          <button
+            style={{ width: '100%', padding: '14px 0', border: 'none', borderRadius: 12, cursor: 'pointer', fontWeight: 700, fontSize: 16, background: 'linear-gradient(135deg, #B8A86F, #9a8a55)', color: '#fff', letterSpacing: 2, transition: 'opacity 0.2s', boxShadow: '0 4px 16px rgba(184,168,111,0.3)' }}
+            onClick={handleLogin}
+            onMouseOver={e => e.target.style.opacity = '0.9'}
+            onMouseOut={e => e.target.style.opacity = '1'}
+          >
+            登 录
           </button>
+          <div style={{ textAlign: 'center', marginTop: 24, fontSize: 11, color: 'rgba(184,168,111,0.3)' }}>© 2026 大烤拉 · ALPA Tips CMS</div>
         </div>
       </div>
     );
